@@ -21,7 +21,7 @@ export class UtilsService {
    * @param key KEY
    * @private
    */
-  getParamValue(url: string, key: string): string {
+  getParamValue(url: string, key: string): string | null {
     const regex = new RegExp(key + '=([^&]*)', 'i');
     const matchResult = url.match(regex);
     if (!matchResult || matchResult.length < 1) {

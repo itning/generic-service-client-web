@@ -21,7 +21,7 @@
             <ng-template #interfaceNameBeforeEnv>
               <nz-select [(ngModel)]="selectEnv" (ngModelChange)="handleEnvChange()"
                          [ngModelOptions]="{standalone: true}">
-                <nz-option *ngFor="let e of availableEnv" [nzValue]="e" [nzLabel]="e"></nz-option>
+                <nz-option *ngFor="let e of availableEnv" [nzValue]="e" [nzLabel]="e.env"></nz-option>
               </nz-select>
             </ng-template>
           </nz-form-control>

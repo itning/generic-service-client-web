@@ -1,5 +1,4 @@
 import {Component, ElementRef, EventEmitter, Input, OnInit, Output, ViewChild} from '@angular/core';
-import {FormBuilder, Validators} from '@angular/forms';
 import {NzModalService} from 'ng-zorro-antd/modal';
 import {v4 as uuidv4} from 'uuid';
 import {FormParamsInfo, PersistenceService} from '../../../../service/persistence.service';
@@ -111,12 +110,12 @@ export class AttributeComponent implements OnInit {
   /**
    * 用户当前选择的环境
    */
-  selectEnv: string;
+  selectEnv: EnvInfo;
 
   /**
    * 所有可用的环境
    */
-  availableEnv: string[] = [];
+  availableEnv: EnvInfo[] = [];
 
   /**
    * 多个提供者信息
@@ -133,8 +132,7 @@ export class AttributeComponent implements OnInit {
 
   tabNameForReName: string;
 
-  constructor(private fb: FormBuilder,
-              private modal: NzModalService,
+  constructor(private modal: NzModalService,
               private persistenceService: PersistenceService,
               private genericService: GenericService,
               private message: NzMessageService,
@@ -143,12 +141,12 @@ export class AttributeComponent implements OnInit {
 
   ngOnInit(): void {
     this.genericService.getAvailableEnv().subscribe((availableEnv) => {
-      this.availableEnv = availableEnv;
-      if (availableEnv && availableEnv.length > 1) {
-        this.selectEnv = availableEnv[0];
-        this.initAvailableInterFace(availableEnv[0]);
+      if (availableEnv && availableEnv.length > 0) {
+        this.availableEnv = availableEnv.map(item => new EnvInfo(item));
+        this.selectEnv = this.availableEnv[0];
+        this.initAvailableInterFace(this.selectEnv.tag, this.selectEnv.env);
       } else {
-        console.log('Zookeeper当前未连接请稍后再试！');
+        console.log('注册中心当前未连接请稍后再试！');
       }
     });
   }
@@ -208,16 +206,8 @@ export class AttributeComponent implements OnInit {
    */
   newTab(): void {
     this.tabs.push(new TabInfo(
-      uuidv4(),
-      'Unnamed Tab',
-      this.fb.group({
-        url: ['', [Validators.required]],
-        interfaceName: ['', [Validators.required]],
-        method: ['', [Validators.required]],
-        version: ['', []],
-        group: ['', []]
-      }),
-      [], []));
+      uuidv4(), 'Unnamed Tab',
+      this.genericService.generateFormParams(), [], []));
     this.selectedIndex = this.tabs.length;
     this.persistenceService.saveGenericParamInfo(this.tabs);
   }
@@ -420,13 +410,13 @@ export class AttributeComponent implements OnInit {
    * @private
    */
   private handleAutoFillingParam(interfaceName: string): void {
-    this.genericService.getURL(this.selectEnv, interfaceName).subscribe(url => {
-      if (url && url.success && url.nodes && url.nodes.length > 0) {
-        if (url.nodes.length === 1) {
-          this.resolveURLValue = decodeURIComponent(url.nodes[0]);
+    this.genericService.getURL(this.selectEnv.env, this.selectEnv.tag, interfaceName).subscribe(url => {
+      if (url && url.success && url.data && url.data.length > 0) {
+        if (url.data.length === 1) {
+          this.resolveURLValue = decodeURIComponent(url.data[0]);
           this.resolveURL();
         } else {
-          this.providerInfoArray = url.nodes.map(item => {
+          this.providerInfoArray = url.data.map(item => {
             item = decodeURIComponent(item);
             const host = item.substring(8, item.indexOf('/', 8));
             const group = this.util.getParamValue(item, 'group');
@@ -438,8 +428,8 @@ export class AttributeComponent implements OnInit {
         }
       } else {
         this.autocomplete.methods.available = this.autocomplete.methods.availableFilter = [];
-        if (url && !url.zkConnected) {
-          this.message.warning('Zookeeper当前未连接请稍后再试！');
+        if (url && !url.regConnected) {
+          this.message.warning('注册中心当前未连接请稍后再试！');
         } else {
           this.message.warning('服务没有提供者！');
         }
@@ -503,8 +493,9 @@ export class AttributeComponent implements OnInit {
     const group = this.util.getParamValue(this.resolveURLValue, 'group');
     const version = this.util.getParamValue(this.resolveURLValue, 'version');
     const methods = this.util.getParamValue(this.resolveURLValue, 'methods');
+    const path = this.util.getParamValue(this.resolveURLValue, 'path');
     const tabInfo = this.tabs[this.selectedIndex];
-    tabInfo.formParams.setValue({url: host, interfaceName, group, version, method: ''});
+    tabInfo.formParams.setValue({url: host, interfaceName, group, version, method: '', path});
     this.autocomplete.methods.availableFilter = this.autocomplete.methods.available = methods.split(',');
     this.message.success('解析完成！');
     this.modalShow.resolveUrl = false;
@@ -533,15 +524,16 @@ export class AttributeComponent implements OnInit {
 
   /**
    * 初始化可用接口信息
+   * @param tag 标签
    * @param env 环境
    */
-  initAvailableInterFace(env: string): void {
-    this.genericService.getAvailableInterFaces(env).subscribe((availableInterface) => {
+  initAvailableInterFace(tag: string, env: string): void {
+    this.genericService.getAvailableInterFaces(tag, env).subscribe((availableInterface) => {
       if (availableInterface && availableInterface.success) {
-        this.autocomplete.interfaces.availableFilter = this.autocomplete.interfaces.available = availableInterface.nodes;
+        this.autocomplete.interfaces.availableFilter = this.autocomplete.interfaces.available = availableInterface.data;
       } else {
-        if (availableInterface && !availableInterface.zkConnected) {
-          this.message.warning('Zookeeper当前未连接请稍后再试！');
+        if (availableInterface && !availableInterface.regConnected) {
+          this.message.warning('注册中心当前未连接请稍后再试！');
         } else {
           this.message.warning('可用接口信息获取失败！');
         }
@@ -554,7 +546,7 @@ export class AttributeComponent implements OnInit {
    */
   handleEnvChange(): void {
     this.autocomplete.interfaces.availableFilter = this.autocomplete.interfaces.available = [];
-    this.initAvailableInterFace(this.selectEnv);
+    this.initAvailableInterFace(this.selectEnv.tag, this.selectEnv.env);
     const tabInfo = this.tabs[this.selectedIndex];
     const interfaceName = tabInfo.formParams.get('interfaceName');
     interfaceName.markAsDirty();
@@ -653,6 +645,7 @@ export class AttributeComponent implements OnInit {
             } else {
               // 有重载
               this.methodInfoArray = info;
+              this.modalShow.methodOverloading = true;
             }
           } else {
             this.message.warning('在上传的文件中没有找到该方法！');
@@ -712,6 +705,17 @@ class ProviderInfo {
   constructor(url: string, info: string) {
     this.url = url;
     this.info = info;
+  }
+}
+
+class EnvInfo {
+  tag: string;
+  env: string;
+
+  constructor(info: string) {
+    const splitIndex = info.indexOf('||');
+    this.tag = info.substring(0, splitIndex);
+    this.env = info.substring(splitIndex + 2);
   }
 }
 

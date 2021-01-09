@@ -89,7 +89,8 @@ export class PersistenceService {
           interfaceName: [item.formParamsValue.interfaceName, [Validators.required]],
           method: [item.formParamsValue.method, [Validators.required]],
           version: [item.formParamsValue.version, []],
-          group: [item.formParamsValue.group, []]
+          group: [item.formParamsValue.group, []],
+          path: [item.formParamsValue.path]
         });
         return new TabInfo(item.id, item.tabName, formGroup, item.parameterValue, []);
       });
@@ -101,4 +102,4 @@ export class PersistenceService {
 }
 
 export type PersistenceGenericParamInfo = { id: string, tabName: string, formParamsValue: FormParamsInfo, parameterValue: Item[] }[];
-export type FormParamsInfo = { url: string, interfaceName: string, method: string, version: string, group: string };
+export type FormParamsInfo = { url: string, interfaceName: string, method: string, version: string, group: string, path: string };

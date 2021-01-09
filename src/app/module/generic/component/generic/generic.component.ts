@@ -6,7 +6,6 @@ import {NzMessageService} from 'ng-zorro-antd/message';
 import {Base64} from 'js-base64';
 import {NzModalService} from 'ng-zorro-antd/modal';
 import {v4 as uuidv4} from 'uuid';
-import {FormBuilder, Validators} from '@angular/forms';
 import {UtilsService} from '../../../../service/utils.service';
 
 @Component({
@@ -27,20 +26,13 @@ export class GenericComponent implements OnInit {
               private genericService: GenericService,
               private message: NzMessageService,
               private modal: NzModalService,
-              private fb: FormBuilder,
               private util: UtilsService) {
   }
 
   ngOnInit(): void {
     this.tabs = this.persistenceService.getGenericParamInfo();
     if (!this.tabs || this.tabs.length === 0) {
-      this.tabs.push(new TabInfo(uuidv4(), 'Unnamed Tab', this.fb.group({
-        url: ['', [Validators.required]],
-        interfaceName: ['', [Validators.required]],
-        method: ['', [Validators.required]],
-        version: ['', []],
-        group: ['', []]
-      }), [], []));
+      this.tabs.push(new TabInfo(uuidv4(), 'Unnamed Tab', this.genericService.generateFormParams(), [], []));
     }
     const index = this.persistenceService.getMetaInfo('nowSelectedTabIndex');
     if (index && !Number.isNaN(index)) {
@@ -53,6 +45,9 @@ export class GenericComponent implements OnInit {
     const resultObj = this.genericService.conversionRequest(tab.parameterValue);
     const result: RequestModel = Object.assign(tab.formParams.value as FormParamsInfo, {params: resultObj});
     const newResult: RequestModel = JSON.parse(JSON.stringify(result));
+    if (newResult.path) {
+      newResult.interfaceName = newResult.path;
+    }
     newResult.url = `dubbo://${newResult.url}`;
 
     this.isRequestLoading = true;
@@ -146,13 +141,14 @@ export class GenericComponent implements OnInit {
       const decode = Base64.decode(this.importTabBase64Str);
       const parse = JSON.parse(decode);
       const importTabs = parse.map(item => {
-        const formGroup = this.fb.group({
-          url: [item.formParamsValue.url, [Validators.required]],
-          interfaceName: [item.formParamsValue.interfaceName, [Validators.required]],
-          method: [item.formParamsValue.method, [Validators.required]],
-          version: [item.formParamsValue.version, []],
-          group: [item.formParamsValue.group, []]
-        });
+        const formGroup = this.genericService.generateFormParams(
+          item.formParamsValue.url,
+          item.formParamsValue.interfaceName,
+          item.formParamsValue.method,
+          item.formParamsValue.version,
+          item.formParamsValue.group,
+          item.formParamsValue.path
+        );
         return new TabInfo(uuidv4(), item.tabName ? item.tabName : 'Unnamed Tab', formGroup, item.parameterValue, []);
       });
       importTabs.forEach(tab => this.tabs.push(tab));
@@ -178,13 +174,14 @@ export class GenericComponent implements OnInit {
       formParamsValue: needCopyTabInfo.formParams.value as FormParamsInfo,
       parameterValue: needCopyTabInfo.parameterValue
     }));
-    const formGroup = this.fb.group({
-      url: [newNeedCopyTabInfo.formParamsValue.url, [Validators.required]],
-      interfaceName: [newNeedCopyTabInfo.formParamsValue.interfaceName, [Validators.required]],
-      method: [newNeedCopyTabInfo.formParamsValue.method, [Validators.required]],
-      version: [newNeedCopyTabInfo.formParamsValue.version, []],
-      group: [newNeedCopyTabInfo.formParamsValue.group, []]
-    });
+    const formGroup = this.genericService.generateFormParams(
+      newNeedCopyTabInfo.formParamsValue.url,
+      newNeedCopyTabInfo.formParamsValue.interfaceName,
+      newNeedCopyTabInfo.formParamsValue.method,
+      newNeedCopyTabInfo.formParamsValue.version,
+      newNeedCopyTabInfo.formParamsValue.group,
+      newNeedCopyTabInfo.formParamsValue.path
+    );
     const newTabInfo = new TabInfo(uuidv4(), 'Unnamed Tab', formGroup, newNeedCopyTabInfo.parameterValue, []);
     this.tabs.push(newTabInfo);
     this.persistenceService.saveGenericParamInfo(this.tabs);

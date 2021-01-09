@@ -3,7 +3,7 @@ import {RequestModel} from '../module/generic/component/attribute/attribute.comp
 import {HttpClient, HttpEvent} from '@angular/common/http';
 import {Observable} from 'rxjs';
 import {map, mergeMap} from 'rxjs/operators';
-import {FormGroup} from '@angular/forms';
+import {FormBuilder, FormGroup, Validators} from '@angular/forms';
 import {environment} from '../../environments/environment';
 import {v4 as uuidv4} from 'uuid';
 import {NzMessageService} from 'ng-zorro-antd/message';
@@ -16,7 +16,8 @@ export class GenericService {
   private token: string;
 
   constructor(private http: HttpClient,
-              private message: NzMessageService) {
+              private message: NzMessageService,
+              private fb: FormBuilder) {
   }
 
   sendGenericRequest(requestModel: RequestModel, echo: string): Observable<string> {
@@ -30,15 +31,16 @@ export class GenericService {
   }
 
   getAvailableEnv(): Observable<string[]> {
-    return this.http.get<string[]>(`http://${environment.baseUrl}/zk/env`);
+    return this.http.get<string[]>(`http://${environment.baseUrl}/service/env`);
   }
 
-  getAvailableInterFaces(env: string): Observable<ZkInfo> {
-    return this.http.get<ZkInfo>(`http://${environment.baseUrl}/zk/node?env=${env}`);
+  getAvailableInterFaces(tag: string, env: string): Observable<ServiceInfo> {
+    return this.http.get<ServiceInfo>(`http://${environment.baseUrl}/service/providers?env=${env}&tag=${tag}`);
   }
 
-  getURL(env: string, name: string): Observable<ZkInfo> {
-    return this.http.get<ZkInfo>(`http://${environment.baseUrl}/zk/providers?env=${env}&name=${name}`);
+  getURL(env: string, tag: string, interfaceName: string): Observable<ServiceInfo> {
+    return this.http
+      .get<ServiceInfo>(`http://${environment.baseUrl}/service/provideDetail?env=${env}&tag=${tag}&interfaceName=${interfaceName}`);
   }
 
   uploadJar(file: Blob, interfaceName: string, methodName: string): Observable<HttpEvent<MethodInfo[]>> {
@@ -66,6 +68,22 @@ export class GenericService {
         subscriber.complete();
       });
     }
+  }
+
+  generateFormParams(url = '',
+                     interfaceName = '',
+                     method = '',
+                     version = '',
+                     group = '',
+                     path = ''): FormGroup {
+    return this.fb.group({
+      url: [url, [Validators.required]],
+      interfaceName: [interfaceName, [Validators.required]],
+      method: [method, [Validators.required]],
+      version: [version, []],
+      group: [group, []],
+      path: [path]
+    });
   }
 
   private initWebSocket(url: string): Observable<string> {
@@ -310,12 +328,12 @@ export class TabInfo {
   }
 }
 
-export class ZkInfo {
+export class ServiceInfo {
   success: boolean;
-  zkConnected: boolean;
+  regConnected: boolean;
   updateTime: string;
   env: string;
-  nodes: string[];
+  data: string[];
 }
 
 export class MethodInfo {
