@@ -1,6 +1,6 @@
 {
-  "name": "测试工具箱",
-  "short_name": "测试工具箱",
+  "name": "Dubbo泛化客户端",
+  "short_name": "Dubbo泛化客户端",
   "theme_color": "#1976d2",
   "background_color": "#fafafa",
   "display": "standalone",
