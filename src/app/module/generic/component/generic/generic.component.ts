@@ -1,0 +1,194 @@
+import {Component, EventEmitter, OnInit} from '@angular/core';
+import {FormParamsInfo, PersistenceService} from '../../../../service/persistence.service';
+import {RequestModel} from '../attribute/attribute.component';
+import {GenericService, TabInfo} from '../../../../service/generic.service';
+import {NzMessageService} from 'ng-zorro-antd/message';
+import {Base64} from 'js-base64';
+import {NzModalService} from 'ng-zorro-antd/modal';
+import {v4 as uuidv4} from 'uuid';
+import {FormBuilder, Validators} from '@angular/forms';
+import {UtilsService} from '../../../../service/utils.service';
+
+@Component({
+  selector: 'app-generic',
+  templateUrl: './generic.component.html',
+  styleUrls: ['./generic.component.scss']
+})
+export class GenericComponent implements OnInit {
+  tabs: TabInfo[] = [];
+  nowSelectedTabIndex = 0;
+  clearLogEvent: EventEmitter<void> = new EventEmitter<void>();
+  lastJsonInfo: string;
+  isShowImportModal: boolean;
+  isRequestLoading: boolean;
+  importTabBase64Str: string;
+
+  constructor(private persistenceService: PersistenceService,
+              private genericService: GenericService,
+              private message: NzMessageService,
+              private modal: NzModalService,
+              private fb: FormBuilder,
+              private util: UtilsService) {
+  }
+
+  ngOnInit(): void {
+    this.tabs = this.persistenceService.getGenericParamInfo();
+    if (!this.tabs || this.tabs.length === 0) {
+      this.tabs.push(new TabInfo(uuidv4(), 'Unnamed Tab', this.fb.group({
+        url: ['', [Validators.required]],
+        interfaceName: ['', [Validators.required]],
+        method: ['', [Validators.required]],
+        version: ['', []],
+        group: ['', []]
+      }), [], []));
+    }
+    const index = this.persistenceService.getMetaInfo('nowSelectedTabIndex');
+    if (index && !Number.isNaN(index)) {
+      this.nowSelectedTabIndex = index > this.tabs.length - 1 ? this.tabs.length - 1 : index;
+    }
+  }
+
+  handleRequest(tab: TabInfo): void {
+    this.persistenceService.saveGenericParamInfo(this.tabs);
+    const resultObj = this.genericService.conversionRequest(tab.parameterValue);
+    const result: RequestModel = Object.assign(tab.formParams.value as FormParamsInfo, {params: resultObj});
+    const newResult: RequestModel = JSON.parse(JSON.stringify(result));
+    newResult.url = `dubbo://${newResult.url}`;
+
+    this.isRequestLoading = true;
+    this.genericService.sendGenericRequest(newResult, tab.id).subscribe(next => {
+      console.log(next);
+    }, () => {
+    }, () => {
+      this.isRequestLoading = false;
+    });
+  }
+
+  handleTabSelect(index: number): void {
+    this.nowSelectedTabIndex = index;
+    this.persistenceService.saveMetaInfo('nowSelectedTabIndex', index);
+  }
+
+  handleClearResult($event: MouseEvent): void {
+    $event.stopPropagation();
+    this.tabs[this.nowSelectedTabIndex].resultData = [];
+  }
+
+  handleClearLog($event: MouseEvent): void {
+    $event.stopPropagation();
+    this.clearLogEvent.emit();
+  }
+
+  handleCopyJsonResult($event: MouseEvent): void {
+    $event.stopPropagation();
+    if (!this.lastJsonInfo) {
+      this.message.warning('暂无JSON结果，请发起调用成功后再试！');
+      return;
+    }
+    this.util.copyToClip(this.lastJsonInfo);
+  }
+
+  handleImportAllTags($event: MouseEvent): void {
+    $event.stopPropagation();
+    this.isShowImportModal = true;
+  }
+
+  handleExportNowTag($event: MouseEvent): void {
+    $event.stopPropagation();
+    if (!this.tabs || this.tabs.length === 0 || !this.tabs[this.nowSelectedTabIndex]) {
+      this.message.warning('没有可导出的TAB！');
+      return;
+    }
+    const tab = this.tabs[this.nowSelectedTabIndex];
+    const encode = Base64.encode(JSON.stringify([{
+      tabName: tab.tabName,
+      formParamsValue: tab.formParams.value as FormParamsInfo,
+      parameterValue: tab.parameterValue
+    }]));
+    this.modal.success({
+      nzTitle: '以下内容是Ta人需要导入的：',
+      nzContent: encode
+    });
+    this.util.copyToClip(encode);
+  }
+
+  handleExportAllTags($event: MouseEvent): void {
+    $event.stopPropagation();
+    if (!this.tabs || this.tabs.length === 0) {
+      this.message.warning('没有可导出的TAB！');
+      return;
+    }
+    const save = this.tabs.map(tab => {
+      return {
+        tabName: tab.tabName,
+        formParamsValue: tab.formParams.value as FormParamsInfo,
+        parameterValue: tab.parameterValue
+      };
+    });
+    const encode = Base64.encode(JSON.stringify(save));
+    this.modal.success({
+      nzTitle: '以下内容是Ta人需要导入的：',
+      nzContent: encode
+    });
+    this.util.copyToClip(encode);
+  }
+
+  handleLastJsonInfoChange(json: string): void {
+    this.lastJsonInfo = json;
+  }
+
+  doImport(): void {
+    if (!this.importTabBase64Str) {
+      this.message.error('请输入要导入的TAB信息');
+      return;
+    }
+    try {
+      const decode = Base64.decode(this.importTabBase64Str);
+      const parse = JSON.parse(decode);
+      const importTabs = parse.map(item => {
+        const formGroup = this.fb.group({
+          url: [item.formParamsValue.url, [Validators.required]],
+          interfaceName: [item.formParamsValue.interfaceName, [Validators.required]],
+          method: [item.formParamsValue.method, [Validators.required]],
+          version: [item.formParamsValue.version, []],
+          group: [item.formParamsValue.group, []]
+        });
+        return new TabInfo(uuidv4(), item.tabName ? item.tabName : 'Unnamed Tab', formGroup, item.parameterValue, []);
+      });
+      importTabs.forEach(tab => this.tabs.push(tab));
+      this.isShowImportModal = false;
+      this.importTabBase64Str = '';
+      this.persistenceService.saveGenericParamInfo(this.tabs);
+      this.nowSelectedTabIndex = this.tabs.length - 1;
+      this.message.success('导入成功');
+    } catch (e) {
+      console.error(e);
+      this.message.error('导入失败');
+    }
+  }
+
+  handleCopyNowTag($event: MouseEvent): void {
+    $event.stopPropagation();
+    if (!this.tabs || this.tabs.length === 0 || !this.tabs[this.nowSelectedTabIndex]) {
+      this.message.warning('没有可复制的TAB！');
+      return;
+    }
+    const needCopyTabInfo = this.tabs[this.nowSelectedTabIndex];
+    const newNeedCopyTabInfo = JSON.parse(JSON.stringify({
+      formParamsValue: needCopyTabInfo.formParams.value as FormParamsInfo,
+      parameterValue: needCopyTabInfo.parameterValue
+    }));
+    const formGroup = this.fb.group({
+      url: [newNeedCopyTabInfo.formParamsValue.url, [Validators.required]],
+      interfaceName: [newNeedCopyTabInfo.formParamsValue.interfaceName, [Validators.required]],
+      method: [newNeedCopyTabInfo.formParamsValue.method, [Validators.required]],
+      version: [newNeedCopyTabInfo.formParamsValue.version, []],
+      group: [newNeedCopyTabInfo.formParamsValue.group, []]
+    });
+    const newTabInfo = new TabInfo(uuidv4(), 'Unnamed Tab', formGroup, newNeedCopyTabInfo.parameterValue, []);
+    this.tabs.push(newTabInfo);
+    this.persistenceService.saveGenericParamInfo(this.tabs);
+    this.nowSelectedTabIndex = this.tabs.length - 1;
+    this.message.success('复制成功！');
+  }
+}
