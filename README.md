@@ -33,7 +33,7 @@
 
 目前接口**提示功能仅支持Zookeeper注册中心**，如果注册中心不是用的Zookeeper就不需要配这个地址
 
-[application.properties](https://github.com/itning/generic-service-client/blob/master/test-deploy/src/main/resources/application.properties#L6) 文件配置ZK地址用于提示，如果不需要提示则不需要配置！
+[application.properties](https://github.com/itning/generic-service-client/blob/master/test-deploy/src/main/resources/application.properties#L21) 文件配置ZK地址用于提示，如果不需要提示则不需要配置！
 
 ```properties
 # 支持多个ZK注册中心，例如下面就写了三个注册中心（A,B,C）
@@ -60,15 +60,13 @@ test-zk.zk-list.C=192.168.88.1:2181,192.168.88.2:2181:2181,192.168.88.3:2181
 
 前端需要知道后端的地址，所以需要改动前端配置：
 
-默认开发环境：[environment.ts](https://github.com/itning/generic-service-client-web/blob/master/src/environments/environment.ts#L8)
+默认开发环境：[environment.ts](https://github.com/itning/generic-service-client-web/blob/master/src/environments/environment.ts#L7)
 
-默认本地生产环境：[environment.local.ts](https://github.com/itning/generic-service-client-web/blob/master/src/environments/environment.local.ts#L4)
-
-默认线上生产环境：[environment.prod.ts](https://github.com/itning/generic-service-client-web/blob/master/src/environments/environment.prod.ts#L4)
+默认线上生产环境：[environment.prod.ts](https://github.com/itning/generic-service-client-web/blob/master/src/environments/environment.prod.ts#L3)
 
 开发环境运行：`npm run start`
 
-构建生产和本地：`npm run buildAll`
+构建生产：`npm run build`
 
 ### 使用说明
 
