@@ -278,6 +278,9 @@ export class AttributeComponent implements OnInit {
     if (this.editor) {
       try {
         const editorItems = this.editor.get();
+        if (!this.checkEditDataOrderly(editorItems)) {
+          return;
+        }
         this.tabs[this.selectedIndex].parameterValue = this.parseTheModifiedParameters(editorItems);
       } catch (e) {
         console.warn(e);
@@ -286,6 +289,29 @@ export class AttributeComponent implements OnInit {
       this.needEditParamArray = null;
       this.modalShow.editInterfaceParam = false;
     }
+  }
+
+  /**
+   * 检查修改的数据是否正确
+   * @param data 数据
+   * @private
+   */
+  private checkEditDataOrderly(data: any): boolean {
+    if (Type.ARRAY !== this.util.getObjectType(data)) {
+      this.message.error('最外层必须是个数组！');
+      return false;
+    }
+    for (const item of data) {
+      if (Type.OBJECT !== this.util.getObjectType(item)) {
+        this.message.error('最外层数组中每一项必须是对象！');
+        return false;
+      }
+      if (Object.keys(item).length > 1) {
+        this.message.error('最外层数组中每一项的对象只能有一个KEY！');
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
