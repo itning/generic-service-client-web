@@ -1,3 +1,6 @@
+# 1.2.9
+- 升级Angular版本
+- 升级ng-zorro-antd版本
 # 1.2.8
 - 升级Angular版本
 - 升级dayjs版本
