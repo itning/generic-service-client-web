@@ -23,7 +23,7 @@
     "dayjs": "^1.10.3",
     "js-base64": "^3.6.0",
     "jsoneditor": "^9.1.7",
-    "ng-zorro-antd": "^11.0.1",
+    "ng-zorro-antd": "^11.0.2",
     "rxjs": "~6.6.0",
     "tslib": "^2.0.0",
     "uuid": "^8.3.2",
