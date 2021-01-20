@@ -10,7 +10,8 @@
           </button>
         </div>
         <div nz-col nzFlex="1">
-          <input nz-input placeholder="属性名/类名/键名" [disabled]="parentType===3" [(ngModel)]="data.attributeName"/>
+          <input nz-input [placeholder]="parentType?'属性名/键名':'全限定类名'" [disabled]="parentType===3"
+                 [(ngModel)]="data.attributeName"/>
         </div>
         <div nz-col nzFlex="100px" style="text-align: center;line-height: 31px">
           <nz-select [(ngModel)]="data.type" (ngModelChange)="onTypeChange(data)">
