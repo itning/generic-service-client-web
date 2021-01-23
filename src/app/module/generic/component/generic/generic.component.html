@@ -56,8 +56,20 @@
             (nzOnCancel)="isShowImportModal=false"
             (nzOnOk)="doImport()">
     <ng-container *nzModalContent>
-      <!--suppress HtmlFormInputWithoutLabel -->
-      <textarea nz-input placeholder="在此输入要导入的TAB信息" nzAutosize [(ngModel)]="importTabBase64Str"></textarea>
+      <nz-textarea-count>
+        <!--suppress HtmlFormInputWithoutLabel -->
+        <textarea nz-input placeholder="在此输入要导入的TAB信息" nzAutosize [(ngModel)]="importTabBase64Str"></textarea>
+      </nz-textarea-count>
+    </ng-container>
+  </nz-modal>
+  <nz-modal [(nzVisible)]="isShowExportModal" [nzKeyboard]="false" [nzMaskClosable]="false" nzTitle="以下内容是Ta人需要导入的"
+            (nzOnCancel)="isShowExportModal=false"
+            (nzOnOk)="isShowExportModal=false">
+    <ng-container *nzModalContent>
+      <nz-textarea-count>
+        <!--suppress HtmlFormInputWithoutLabel -->
+        <textarea rows="10" nz-input [(ngModel)]="exportInfo" readonly></textarea>
+      </nz-textarea-count>
     </ng-container>
   </nz-modal>
 </div>

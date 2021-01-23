@@ -4,7 +4,6 @@ import {RequestModel} from '../attribute/attribute.component';
 import {GenericService, TabInfo} from '../../../../service/generic.service';
 import {NzMessageService} from 'ng-zorro-antd/message';
 import {Base64} from 'js-base64';
-import {NzModalService} from 'ng-zorro-antd/modal';
 import {v4 as uuidv4} from 'uuid';
 import {UtilsService} from '../../../../service/utils.service';
 
@@ -19,13 +18,14 @@ export class GenericComponent implements OnInit {
   clearLogEvent: EventEmitter<void> = new EventEmitter<void>();
   lastJsonInfo: string;
   isShowImportModal: boolean;
+  isShowExportModal: boolean;
   isRequestLoading: boolean;
   importTabBase64Str: string;
+  exportInfo: string;
 
   constructor(private persistenceService: PersistenceService,
               private genericService: GenericService,
               private message: NzMessageService,
-              private modal: NzModalService,
               private util: UtilsService) {
   }
 
@@ -85,11 +85,13 @@ export class GenericComponent implements OnInit {
 
   handleImportAllTags($event: MouseEvent): void {
     $event.stopPropagation();
+    this.importTabBase64Str = '';
     this.isShowImportModal = true;
   }
 
   handleExportNowTag($event: MouseEvent): void {
     $event.stopPropagation();
+    this.exportInfo = '';
     if (!this.tabs || this.tabs.length === 0 || !this.tabs[this.nowSelectedTabIndex]) {
       this.message.warning('没有可导出的TAB！');
       return;
@@ -100,15 +102,14 @@ export class GenericComponent implements OnInit {
       formParamsValue: tab.formParams.value as FormParamsInfo,
       parameterValue: tab.parameterValue
     }]));
-    this.modal.success({
-      nzTitle: '以下内容是Ta人需要导入的：',
-      nzContent: encode
-    });
+    this.exportInfo = encode;
+    this.isShowExportModal = true;
     this.util.copyToClip(encode);
   }
 
   handleExportAllTags($event: MouseEvent): void {
     $event.stopPropagation();
+    this.exportInfo = '';
     if (!this.tabs || this.tabs.length === 0) {
       this.message.warning('没有可导出的TAB！');
       return;
@@ -121,10 +122,8 @@ export class GenericComponent implements OnInit {
       };
     });
     const encode = Base64.encode(JSON.stringify(save));
-    this.modal.success({
-      nzTitle: '以下内容是Ta人需要导入的：',
-      nzContent: encode
-    });
+    this.exportInfo = encode;
+    this.isShowExportModal = true;
     this.util.copyToClip(encode);
   }
 
