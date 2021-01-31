@@ -1,5 +1,5 @@
 import {Injectable} from '@angular/core';
-import {Type} from './generic.service';
+import {Artifact, Type} from './generic.service';
 import {NzMessageService} from 'ng-zorro-antd/message';
 import * as dayjs from 'dayjs';
 
@@ -116,5 +116,13 @@ export class UtilsService {
 
   formatDate_8301String2Date(value: string): Date {
     return dayjs(value, UtilsService.DATE_8301_FORMAT).toDate();
+  }
+
+  genericMavenDependencyXml(artifact: Artifact): string {
+    return `<dependency>
+  <groupId>${artifact.groupId}</groupId>
+  <artifactId>${artifact.artifactId}</artifactId>
+  <version>${artifact.version}</version>
+</dependency>`;
   }
 }

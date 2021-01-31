@@ -20,6 +20,7 @@ import {NzAutocompleteModule} from 'ng-zorro-antd/auto-complete';
 import {NzSelectModule} from 'ng-zorro-antd/select';
 import {NzUploadModule} from 'ng-zorro-antd/upload';
 import {NzDatePickerModule} from 'ng-zorro-antd/date-picker';
+import {NzProgressModule} from 'ng-zorro-antd/progress';
 
 @NgModule({
   declarations: [],
@@ -45,7 +46,8 @@ import {NzDatePickerModule} from 'ng-zorro-antd/date-picker';
     NzSelectModule,
     NzUploadModule,
     NzDatePickerModule,
-    IconsProviderModule
+    IconsProviderModule,
+    NzProgressModule
   ],
   exports: [
     CommonModule,
@@ -69,7 +71,8 @@ import {NzDatePickerModule} from 'ng-zorro-antd/date-picker';
     NzSelectModule,
     NzUploadModule,
     NzDatePickerModule,
-    IconsProviderModule
+    IconsProviderModule,
+    NzProgressModule
   ]
 })
 export class SharedModule {

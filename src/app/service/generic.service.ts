@@ -1,7 +1,7 @@
 import {Injectable} from '@angular/core';
 import {RequestModel} from '../module/generic/component/attribute/attribute.component';
-import {HttpClient, HttpEvent} from '@angular/common/http';
-import {Observable} from 'rxjs';
+import {HttpClient, HttpEvent, HttpParams} from '@angular/common/http';
+import {Observable, Subject} from 'rxjs';
 import {map, mergeMap} from 'rxjs/operators';
 import {FormBuilder, FormGroup, Validators} from '@angular/forms';
 import {environment} from '../../environments/environment';
@@ -13,7 +13,9 @@ import {AutocompleteDataSource} from 'ng-zorro-antd/auto-complete/autocomplete.c
   providedIn: 'root'
 })
 export class GenericService {
+
   private token: string;
+  private resultSubject: Subject<WebSocketResultModel>;
 
   constructor(private http: HttpClient,
               private message: NzMessageService,
@@ -28,6 +30,31 @@ export class GenericService {
       requestModel['echo'] = echo;
       return this.http.post(`http://${environment.baseUrl}/dubbo/invoke`, requestModel, {responseType: 'text'});
     }));
+  }
+
+  sendMavenRequest(mavenRequest: MavenRequest): Observable<MavenResponse<void>> {
+    return this.getWebSocketToken().pipe(mergeMap(token => {
+      mavenRequest.token = token;
+      return this.http.post<MavenResponse<void>>(`http://${environment.baseUrl}/nexus/dependency/download`, mavenRequest);
+    }));
+  }
+
+  sendMavenParse(dep: string): Observable<Artifact[]> {
+    return this.http.post<MavenResponse<Artifact[]>>(`http://${environment.baseUrl}/nexus/dependency/parse`,
+      new HttpParams({fromObject: {dependency: dep}}),
+      {headers: {'Content-Type': 'application/x-www-form-urlencoded'}})
+      .pipe(map(it => {
+        if (!it || !it.success) {
+          this.message.error(it.message);
+          return null;
+        } else {
+          return it.data;
+        }
+      }));
+  }
+
+  cancelDownload(cancelToken: string): Observable<void> {
+    return this.http.get<void>(`http://${environment.baseUrl}/nexus/dependency/download/cancel?token=${cancelToken}`);
   }
 
   getAvailableEnv(): Observable<string[]> {
@@ -137,6 +164,15 @@ export class GenericService {
       }));
   }
 
+  connectionResultWebSocketReply(): Subject<WebSocketResultModel> {
+    if (this.resultSubject) {
+      return this.resultSubject;
+    }
+    this.resultSubject = new Subject<WebSocketResultModel>();
+    this.getWebSocketToken().pipe(mergeMap(token => this.connectionResultWebSocket(token))).subscribe(this.resultSubject);
+    return this.resultSubject;
+  }
+
   connectionLogWebSocket(): Observable<string> {
     return this.initWebSocket(`ws://${environment.baseUrl}/log`).pipe(map(it => {
       if (it.startsWith('0||')) {
@@ -202,6 +238,26 @@ export class GenericService {
   }
 }
 
+export class Artifact {
+  groupId: string;
+  artifactId: string;
+  version: string;
+}
+
+export class MavenRequest {
+  token: string;
+  echo: string;
+  dependency: string;
+  interfaceName: string;
+  methodName: string;
+}
+
+export class MavenResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+}
+
 export class WebSocketResultModel {
   type: WebSocketMessageType;
   message: string;
@@ -216,7 +272,11 @@ export class WebSocketResultModel {
 
 export enum WebSocketMessageType {
   PLAINTEXT,
-  JSON
+  JSON,
+  NEXUS_DOWNLOAD_CANCEL_TOKEN,
+  NEXUS_DOWNLOAD_PROGRESS,
+  NEXUS_DOWNLOAD_SUCCESS,
+  NEXUS_DOWNLOAD_FAILED
 }
 
 export type AttributeNameType = string | undefined;

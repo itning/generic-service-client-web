@@ -2,7 +2,18 @@ import {Component, ElementRef, EventEmitter, Input, OnInit, Output, ViewChild} f
 import {NzModalService} from 'ng-zorro-antd/modal';
 import {v4 as uuidv4} from 'uuid';
 import {FormParamsInfo, PersistenceService} from '../../../../service/persistence.service';
-import {AttributeValueType, GenericService, Item, MethodInfo, TabInfo, Type} from '../../../../service/generic.service';
+import {
+  Artifact,
+  AttributeValueType,
+  GenericService,
+  Item,
+  MavenRequest,
+  MethodInfo,
+  TabInfo,
+  Type,
+  WebSocketMessageType,
+  WebSocketResultModel
+} from '../../../../service/generic.service';
 import JSONEditor from 'jsoneditor';
 import {NzMessageService} from 'ng-zorro-antd/message';
 import {UtilsService} from '../../../../service/utils.service';
@@ -12,6 +23,7 @@ import {EMPTY, Observable, Subscription} from 'rxjs';
 import {filter, map} from 'rxjs/operators';
 import {HttpEventType, HttpResponse} from '@angular/common/http';
 import {AutocompleteDataSource} from 'ng-zorro-antd/auto-complete/autocomplete.component';
+import {AbstractControl} from '@angular/forms';
 
 @Component({
   selector: 'app-attribute',
@@ -85,7 +97,10 @@ export class AttributeComponent implements OnInit {
     resolveUrl: false,
     resolveUrlSelect: false,
     methodOverloading: false,
-    tabReName: false
+    tabReName: false,
+    maven: false,
+    download: false,
+    mavenVersion: false
   };
 
   /**
@@ -122,15 +137,83 @@ export class AttributeComponent implements OnInit {
    */
   providerInfoArray: ProviderInfo[] = [];
 
+  /**
+   * 文件上传列表
+   */
   uploadFileList: NzUploadFile[];
 
+  /**
+   * 方法重载信息数组
+   */
   methodInfoArray: MethodInfo[];
 
+  /**
+   * 选择的方法重载信息
+   */
   resolveMethodInfo: MethodInfo;
 
+  /**
+   * 原来的TAB页信息，用于修改TAB名展示
+   */
   oldTab: TabInfo;
 
+  /**
+   * TAB的新名称
+   */
   tabNameForReName: string;
+
+  /**
+   * 填写的maven XML信息
+   */
+  mavenXml: string = '<dependency>\n' +
+    '  <groupId></groupId>\n' +
+    '  <artifactId></artifactId>\n' +
+    '  <version></version>\n' +
+    '</dependency>';
+
+  /**
+   * 填写的maven信息
+   */
+  mavenXmlInputValue: Artifact = {
+    groupId: '',
+    artifactId: '',
+    version: ''
+  };
+
+  /**
+   * maven坐标填写后的加载条显示
+   */
+  mavenLoading: boolean;
+
+  /**
+   * 下载进度信息
+   */
+  downloadProgress: number;
+
+  /**
+   * 下载速度信息
+   */
+  downloadSpeed: number;
+
+  /**
+   * 取消下载时的TOKEN信息
+   */
+  cancelToken: string;
+
+  /**
+   * 可选的maven版本信息
+   */
+  mavenArtifacts: Artifact[];
+
+  /**
+   * 选择的maven版本信息
+   */
+  resolveMavenArtifact: Artifact;
+
+  /**
+   * 填写maven信息时选择的TAB页
+   */
+  mavenXmlTabIndex = 0;
 
   constructor(private modal: NzModalService,
               private persistenceService: PersistenceService,
@@ -149,6 +232,95 @@ export class AttributeComponent implements OnInit {
         console.log('注册中心当前未连接请稍后再试！');
       }
     });
+    this.genericService.connectionResultWebSocketReply().subscribe(model => {
+      const tabInfo = this.tabs.find(it => it.id === model.echo);
+      if (tabInfo) {
+        this.parseDownloadMessage(model);
+      }
+    });
+  }
+
+  /**
+   * 发起maven请求
+   * @param mavenRequest maven请求
+   * @private
+   */
+  private sendMavenRequest(mavenRequest: MavenRequest): void {
+    this.genericService.sendMavenRequest(mavenRequest)
+      .subscribe(response => {
+        this.mavenLoading = false;
+        this.modalShow.maven = false;
+        if (!response.success) {
+          this.message.error(response.message);
+        }
+      }, () => {
+        this.mavenLoading = false;
+        this.modalShow.maven = false;
+      });
+  }
+
+  /**
+   * 解析下载事件
+   * @param model 事件模型
+   * @private
+   */
+  private parseDownloadMessage(model: WebSocketResultModel): void {
+    switch (model.type) {
+      case WebSocketMessageType.NEXUS_DOWNLOAD_CANCEL_TOKEN:
+        console.log(model.message);
+        this.cancelToken = model.message;
+        this.downloadSpeed = 0;
+        this.downloadProgress = 0;
+        this.modalShow.download = true;
+        break;
+      case WebSocketMessageType.NEXUS_DOWNLOAD_PROGRESS:
+        const progressArray = model.message.split('-');
+        const downloadBytes = Number(progressArray[0]);
+        const totalBytes = Number(progressArray[1]);
+        this.downloadProgress = Math.round(downloadBytes / totalBytes * 100);
+        this.downloadSpeed = Number(progressArray[2]);
+        break;
+      case WebSocketMessageType.NEXUS_DOWNLOAD_FAILED:
+        this.message.error(model.message);
+        this.modalShow.download = false;
+        break;
+      case WebSocketMessageType.NEXUS_DOWNLOAD_SUCCESS:
+        const info: MethodInfo[] = JSON.parse(model.message);
+        if (info && info.length > 0) {
+          if (info.length === 1) {
+            this.parsingParameters(info[0]);
+          } else {
+            // 有重载
+            this.methodInfoArray = info;
+            this.modalShow.methodOverloading = true;
+          }
+        } else {
+          this.message.warning('在上传的文件中没有找到该方法！');
+        }
+        this.modalShow.download = false;
+        this.message.success('解析完成');
+        break;
+    }
+  }
+
+  /**
+   * 验证接口名和方法信息是否填写
+   * @param tabInfo TAB页
+   * @private
+   */
+  private validInterfaceNameAndMethod(tabInfo: TabInfo): { interfaceName: AbstractControl, method: AbstractControl } | null {
+    const formParams = tabInfo.formParams;
+    const interfaceName = formParams.get('interfaceName');
+    const method = formParams.get('method');
+    interfaceName.markAsDirty();
+    interfaceName.updateValueAndValidity();
+    method.markAsDirty();
+    method.updateValueAndValidity();
+    if (!interfaceName.valid || !method.valid) {
+      this.message.warning('请先填写接口名和方法名！');
+      return null;
+    }
+    return {interfaceName, method};
   }
 
   /**
@@ -184,6 +356,23 @@ export class AttributeComponent implements OnInit {
       result.push(re);
     }
     this.tabs[this.selectedIndex].parameterValue = this.parseTheModifiedParameters(result, true);
+  }
+
+  /**
+   * 获取友好的进度信息
+   */
+  getGoodProgress(): string {
+    let downloadSpeed = this.downloadSpeed;
+    if (!downloadSpeed || Number.isNaN(downloadSpeed)) {
+      downloadSpeed = 0;
+    }
+    if (downloadSpeed <= 1024) {
+      return `${downloadSpeed.toFixed(2)}KB/s`;
+    } else if (downloadSpeed <= 1048576) {
+      return `${(downloadSpeed / 1024).toFixed(2)}MB/s`;
+    } else {
+      return `${(downloadSpeed / 1024 / 1024).toFixed(2)}GB/s`;
+    }
   }
 
   /**
@@ -604,9 +793,8 @@ export class AttributeComponent implements OnInit {
   /**
    * 上传之前检查
    * @param file NzUploadFile
-   * @param fileList NzUploadFile[]
    */
-  beforeUpload = (file: NzUploadFile, fileList: NzUploadFile[]): boolean | Observable<boolean> => {
+  beforeUpload = (file: NzUploadFile): boolean | Observable<boolean> => {
     const formParams = this.tabs[this.selectedIndex].formParams;
     const interfaceName = formParams.get('interfaceName');
     const method = formParams.get('method');
@@ -722,8 +910,115 @@ export class AttributeComponent implements OnInit {
     this.persistenceService.saveGenericParamInfo(this.tabs);
     this.modalShow.tabReName = false;
   }
+
+  /**
+   * maven请求
+   */
+  mavenRequest(): void {
+    if (!this.validInterfaceNameAndMethod(this.tabs[this.selectedIndex])) {
+      return;
+    }
+    this.modalShow.maven = true;
+  }
+
+  /**
+   * 发起maven请求
+   */
+  doMaven(): void {
+    const tabInfo = this.tabs[this.selectedIndex];
+    const tabParam = this.validInterfaceNameAndMethod(tabInfo);
+    if (!tabParam) {
+      return;
+    }
+    if (this.mavenXmlTabIndex === 1) {
+      this.mavenXml = this.util.genericMavenDependencyXml(this.mavenXmlInputValue);
+    }
+    if (!this.mavenXml || this.mavenXml === '') {
+      this.message.warning('Maven坐标信息必填！');
+      return;
+    }
+    this.mavenLoading = true;
+    this.genericService.sendMavenParse(this.mavenXml).subscribe(result => {
+      if (!result) {
+        this.mavenLoading = false;
+        return;
+      }
+      if (result.length > 0) {
+        if (result.length === 1) {
+          const mavenRequest = new MavenRequest();
+          mavenRequest.echo = tabInfo.id;
+          mavenRequest.interfaceName = tabParam.interfaceName.value;
+          mavenRequest.methodName = tabParam.method.value;
+          mavenRequest.dependency = this.util.genericMavenDependencyXml(result[0]);
+          this.sendMavenRequest(mavenRequest);
+        } else {
+          this.mavenArtifacts = result;
+          this.modalShow.mavenVersion = true;
+        }
+      } else {
+        this.mavenLoading = false;
+        this.message.info('没有找到可用的版本信息');
+      }
+    });
+  }
+
+  /**
+   * 取消下载
+   */
+  cancelDownload(): void {
+    this.modal.confirm({
+      nzTitle: '确定取消下载？',
+      nzContent: '取消后已经下载的进度将删除。',
+      nzOnOk: () => this.genericService.cancelDownload(this.cancelToken)
+        .subscribe(() => {
+          this.modalShow.download = false;
+          this.downloadSpeed = 0;
+          this.downloadProgress = 0;
+        })
+    });
+  }
+
+  /**
+   * 解析选择的maven信息
+   */
+  resolveSelectMavenVersion(): void {
+    if (!this.resolveMavenArtifact) {
+      this.message.warning('必须选择个版本号');
+    }
+    const tabInfo = this.tabs[this.selectedIndex];
+    const result = this.validInterfaceNameAndMethod(tabInfo);
+    if (!result) {
+      return;
+    }
+    const mavenRequest = new MavenRequest();
+    mavenRequest.echo = tabInfo.id;
+    mavenRequest.interfaceName = result.interfaceName.value;
+    mavenRequest.methodName = result.method.value;
+    mavenRequest.dependency = this.util.genericMavenDependencyXml(this.resolveMavenArtifact);
+    this.modalShow.mavenVersion = false;
+    this.sendMavenRequest(mavenRequest);
+  }
+
+  /**
+   * maven模态框关闭
+   */
+  onMavenClose(): void {
+    this.mavenLoading = false;
+    this.modalShow.maven = false;
+  }
+
+  /**
+   * maven版本模态框关闭
+   */
+  onMavenVersionClose(): void {
+    this.mavenLoading = false;
+    this.modalShow.mavenVersion = false;
+  }
 }
 
+/**
+ * 接口提供者信息
+ */
 class ProviderInfo {
   url: string;
   info: string;
@@ -734,6 +1029,9 @@ class ProviderInfo {
   }
 }
 
+/**
+ * 环境信息
+ */
 class EnvInfo {
   tag: string;
   env: string;
@@ -745,5 +1043,12 @@ class EnvInfo {
   }
 }
 
+/**
+ * 请求参数模型
+ */
 export type RequestParamModel = { [name: string]: RequestParamModel | string | string[] }[];
+
+/**
+ * 请求模型
+ */
 export type RequestModel = FormParamsInfo & { params: RequestParamModel };

@@ -1,6 +1,5 @@
 import {Component, ElementRef, EventEmitter, Input, OnInit, Output, ViewChild} from '@angular/core';
 import {GenericService, TabInfo, WebSocketMessageType, WebSocketResultModel} from '../../../../service/generic.service';
-import {mergeMap} from 'rxjs/operators';
 import {NzNotificationService} from 'ng-zorro-antd/notification';
 import {UtilsService} from '../../../../service/utils.service';
 
@@ -25,7 +24,7 @@ export class ResultComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.genericService.getWebSocketToken().pipe(mergeMap(token => this.genericService.connectionResultWebSocket(token)))
+    this.genericService.connectionResultWebSocketReply()
       .subscribe(model => {
         const tabInfo = this.tabs.find(it => it.id === model.echo);
         if (tabInfo) {

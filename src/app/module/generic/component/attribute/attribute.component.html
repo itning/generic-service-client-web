@@ -6,7 +6,7 @@
             (nzClick)="handleTabClick(i)">
       <form nz-form [formGroup]="tab.formParams">
         <nz-form-item>
-          <nz-form-label [nzSm]="6" [nzXs]="24" nzRequired nzFor="interfaceName">弱类型接口名（类全限定名）</nz-form-label>
+          <nz-form-label [nzSm]="6" [nzXs]="24" nzRequired nzFor="interfaceName">弱类型接口名（全限定类名）</nz-form-label>
           <nz-form-control [nzSm]="14" [nzXs]="24" nzErrorTip="弱类型接口名必填">
             <nz-input-group [nzAddOnBefore]="selectEnv ? interfaceNameBeforeEnv : ''">
               <!--suppress HtmlFormInputWithoutLabel -->
@@ -77,6 +77,7 @@
                          [nzCustomRequest]="uploadRequest" [nzFileList]="uploadFileList">
                 <button nz-button><i nz-icon nzType="upload"></i>支持Jar包和Zip包和War包</button>
               </nz-upload>
+              <button style="margin-left: 2px" nz-button nzType="default" (click)="mavenRequest()">Maven坐标解析</button>
             </nz-input-group>
           </nz-form-control>
         </nz-form-item>
@@ -136,6 +137,51 @@
     <ng-container *nzModalContent>
       <!--suppress HtmlFormInputWithoutLabel -->
       <input nz-input [placeholder]="oldTab.tabName" [(ngModel)]="tabNameForReName"/>
+    </ng-container>
+  </nz-modal>
+  <nz-modal [(nzVisible)]="modalShow.maven" nzTitle="Maven坐标" [nzKeyboard]="false"
+            [nzMaskClosable]="false"
+            [nzBodyStyle]="{'padding-top':'0'}"
+            (nzOnCancel)="onMavenClose()" [nzOkLoading]="mavenLoading" (nzOnOk)="doMaven()">
+    <ng-container *nzModalContent>
+      <nz-tabset [(nzSelectedIndex)]="mavenXmlTabIndex">
+        <nz-tab nzTitle="使用XML填写">
+          <p>version版本信息可以不填</p>
+          <!--suppress HtmlFormInputWithoutLabel -->
+          <textarea nz-input placeholder="maven xml" rows="5" [(ngModel)]="mavenXml"></textarea>
+        </nz-tab>
+        <nz-tab nzTitle="使用输入框填写">
+          <nz-input-group style="margin-bottom: 6px" nzAddOnBefore="<groupId>" nzAddOnAfter="</groupId>">
+            <!--suppress HtmlFormInputWithoutLabel -->
+            <input type="text" nz-input placeholder="必填" [(ngModel)]="mavenXmlInputValue.groupId"/>
+          </nz-input-group>
+          <nz-input-group style="margin-bottom: 6px" nzAddOnBefore="<artifactId>" nzAddOnAfter="</artifactId>">
+            <!--suppress HtmlFormInputWithoutLabel -->
+            <input type="text" nz-input placeholder="必填" [(ngModel)]="mavenXmlInputValue.artifactId"/>
+          </nz-input-group>
+          <nz-input-group style="margin-bottom: 6px" nzAddOnBefore="<version>" nzAddOnAfter="</version>">
+            <!--suppress HtmlFormInputWithoutLabel -->
+            <input type="text" nz-input [(ngModel)]="mavenXmlInputValue.version"/>
+          </nz-input-group>
+        </nz-tab>
+      </nz-tabset>
+    </ng-container>
+  </nz-modal>
+  <nz-modal [(nzVisible)]="modalShow.download" nzTitle="下载中" [nzKeyboard]="false"
+            [nzMaskClosable]="false" nzCancelText="取消下载" nzOkDisabled
+            (nzOnCancel)="cancelDownload()">
+    <ng-container *nzModalContent>
+      <p>下载速度：{{getGoodProgress()}}</p>
+      <nz-progress [nzPercent]="downloadProgress" nzType="circle"></nz-progress>
+    </ng-container>
+  </nz-modal>
+  <nz-modal [(nzVisible)]="modalShow.mavenVersion" nzTitle="选择版本号" [nzKeyboard]="false"
+            [nzMaskClosable]="false"
+            (nzOnCancel)="onMavenVersionClose()" (nzOnOk)="resolveSelectMavenVersion()">
+    <ng-container *nzModalContent>
+      <nz-select [(ngModel)]="resolveMavenArtifact" style="width: 100%;" nzPlaceHolder="选择版本...">
+        <nz-option *ngFor="let i of mavenArtifacts" [nzValue]="i" [nzLabel]="i.version"></nz-option>
+      </nz-select>
     </ng-container>
   </nz-modal>
 </div>
