@@ -1,7 +1,7 @@
 import {Component, EventEmitter, OnInit} from '@angular/core';
 import {FormParamsInfo, PersistenceService} from '../../../../service/persistence.service';
 import {RequestModel} from '../attribute/attribute.component';
-import {GenericService, TabInfo} from '../../../../service/generic.service';
+import {GenericService, Item, TabInfo} from '../../../../service/generic.service';
 import {NzMessageService} from 'ng-zorro-antd/message';
 import {Base64} from 'js-base64';
 import {v4 as uuidv4} from 'uuid';
@@ -40,9 +40,19 @@ export class GenericComponent implements OnInit {
     }
   }
 
+  private filterUseAttributeNotTrue(items: Item[]): Item[] {
+    return items.filter(item => item.use).map(item => {
+      if (item.attributeValue instanceof Array) {
+        item.attributeValue = this.filterUseAttributeNotTrue(item.attributeValue as Item[]);
+      }
+      return item;
+    });
+  }
+
   handleRequest(tab: TabInfo): void {
     this.persistenceService.saveGenericParamInfo(this.tabs);
-    const resultObj = this.genericService.conversionRequest(tab.parameterValue.filter(item => item.use));
+    const parameterValue = this.filterUseAttributeNotTrue(JSON.parse(JSON.stringify(tab.parameterValue)));
+    const resultObj = this.genericService.conversionRequest(parameterValue);
     const result: RequestModel = Object.assign(tab.formParams.value as FormParamsInfo, {params: resultObj});
     const newResult: RequestModel = JSON.parse(JSON.stringify(result));
     if (newResult.path) {

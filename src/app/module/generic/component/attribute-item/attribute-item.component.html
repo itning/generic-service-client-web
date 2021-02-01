@@ -35,7 +35,7 @@
                  [(ngModel)]="data.attributeValue" [nzAutocomplete]="valueAutocomplete"/>
           <nz-autocomplete [nzDataSource]="data.autoComplete" nzBackfill #valueAutocomplete></nz-autocomplete>
           <nz-date-picker style="width: 100%;" nzAllowClear nzShowTime *ngIf="!isDate(data.type)"
-                          [(ngModel)]="data.attributeValueDate"
+                          [(ngModel)]="data.attributeValueDate" [disabled]="!data.use"
                           [nzFormat]="data.type===5?'yyyy-MM-dd HH:mm:ss':'yyyy-MM-ddTHH:mm:ss'"
                           [nzPlaceHolder]="data.type===5?'yyyy-MM-dd HH:mm:ss':'yyyy-MM-ddTHH:mm:ss'"
                           (ngModelChange)="onDatePickerChange($event,data)"></nz-date-picker>
