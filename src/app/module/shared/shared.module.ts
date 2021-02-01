@@ -21,6 +21,7 @@ import {NzSelectModule} from 'ng-zorro-antd/select';
 import {NzUploadModule} from 'ng-zorro-antd/upload';
 import {NzDatePickerModule} from 'ng-zorro-antd/date-picker';
 import {NzProgressModule} from 'ng-zorro-antd/progress';
+import {NzCheckboxModule} from 'ng-zorro-antd/checkbox';
 
 @NgModule({
   declarations: [],
@@ -47,7 +48,8 @@ import {NzProgressModule} from 'ng-zorro-antd/progress';
     NzUploadModule,
     NzDatePickerModule,
     IconsProviderModule,
-    NzProgressModule
+    NzProgressModule,
+    NzCheckboxModule
   ],
   exports: [
     CommonModule,
@@ -72,7 +74,8 @@ import {NzProgressModule} from 'ng-zorro-antd/progress';
     NzUploadModule,
     NzDatePickerModule,
     IconsProviderModule,
-    NzProgressModule
+    NzProgressModule,
+    NzCheckboxModule
   ]
 })
 export class SharedModule {

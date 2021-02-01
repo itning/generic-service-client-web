@@ -42,7 +42,7 @@ export class GenericComponent implements OnInit {
 
   handleRequest(tab: TabInfo): void {
     this.persistenceService.saveGenericParamInfo(this.tabs);
-    const resultObj = this.genericService.conversionRequest(tab.parameterValue);
+    const resultObj = this.genericService.conversionRequest(tab.parameterValue.filter(item => item.use));
     const result: RequestModel = Object.assign(tab.formParams.value as FormParamsInfo, {params: resultObj});
     const newResult: RequestModel = JSON.parse(JSON.stringify(result));
     if (newResult.path) {

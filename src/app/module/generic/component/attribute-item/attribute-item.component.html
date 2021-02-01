@@ -2,19 +2,23 @@
   <div nz-row>
     <div nz-col nzFlex="auto">
       <div nz-row>
-        <div nz-col nzFlex="30px">
+        <div nz-col nzFlex="50px">
           <button class="box-item-button" nz-button nzType="default" nzShape="circle" nzSize="small"
                   nz-tooltip [nzTooltipTitle]="data.show?'收起':'展开'" (click)="data.show=!data.show"
                   [disabled]="isPlain(data.type)">
             <i nz-icon [nzType]="data.show?'folder-open':'folder'" nzTheme="outline"></i>
           </button>
+          <label class="box-item-checkbox" nz-checkbox nz-tooltip [(ngModel)]="data.use"
+                 (ngModelChange)="onUseChange($event,data)"
+                 [nzTooltipTitle]="data.use?'启用':'禁用'"></label>
         </div>
         <div nz-col nzFlex="1">
-          <input nz-input [placeholder]="parentType?'属性名/键名':'全限定类名'" [disabled]="parentType===3"
+          <!--suppress HtmlFormInputWithoutLabel -->
+          <input nz-input [placeholder]="parentData?.type?'属性名/键名':'全限定类名'" [disabled]="parentData?.type===3||!data.use"
                  [(ngModel)]="data.attributeName"/>
         </div>
-        <div nz-col nzFlex="100px" style="text-align: center;line-height: 31px">
-          <nz-select [(ngModel)]="data.type" (ngModelChange)="onTypeChange(data)">
+        <div nz-col nzFlex="100px" class="box-item-select">
+          <nz-select [(ngModel)]="data.type" (ngModelChange)="onTypeChange(data)" [disabled]="!data.use">
             <nz-option [nzValue]="0" nzLabel="字符串"></nz-option>
             <nz-option [nzValue]="1" nzLabel="数字"></nz-option>
             <nz-option [nzValue]="2" nzLabel="布尔"></nz-option>
@@ -25,8 +29,9 @@
           </nz-select>
         </div>
         <div nz-col nzFlex="1">
+          <!--suppress HtmlFormInputWithoutLabel -->
           <input *ngIf="isPlain(data.type)&&isDate(data.type)" [type]="data.type===1?'number':'text'" nz-input
-                 [placeholder]="data.placeholder ? data.placeholder : '属性值'"
+                 [disabled]="!data.use" [placeholder]="data.placeholder ? data.placeholder : '属性值'"
                  [(ngModel)]="data.attributeValue" [nzAutocomplete]="valueAutocomplete"/>
           <nz-autocomplete [nzDataSource]="data.autoComplete" nzBackfill #valueAutocomplete></nz-autocomplete>
           <nz-date-picker style="width: 100%;" nzAllowClear nzShowTime *ngIf="!isDate(data.type)"
@@ -54,7 +59,7 @@
   <div *ngIf="!isPlain(data.type)" [hidden]="!data.show">
     <!--suppress AngularInvalidExpressionResultType -->
     <app-attribute-item *ngFor="let item of data.attributeValue" [data]="item" [offset]="offset + 5"
-                        [parentType]="data.type"
+                        [parentData]="data"
                         (delete)="deleteAttribute($event)" (add)="addAttribute($event)"></app-attribute-item>
   </div>
 </div>

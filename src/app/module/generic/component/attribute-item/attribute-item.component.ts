@@ -20,7 +20,7 @@ export class AttributeItemComponent implements OnInit {
   offset: number;
 
   @Input()
-  parentType: Type;
+  parentData: Item;
   /**
    * 删除事件
    */
@@ -51,6 +51,7 @@ export class AttributeItemComponent implements OnInit {
    * @param data 要添加所在的父属性
    */
   addAttribute(data: AttributeValueType): void {
+    this.data.use = true;
     this.add.emit(data);
   }
 
@@ -88,6 +89,15 @@ export class AttributeItemComponent implements OnInit {
       data.attributeValue = data.type === Type.DATE ?
         this.utils.formatDate2DateString(result) : this.utils.formatDate2Date_8301String(result);
       data.attributeValueDate = result;
+    }
+  }
+
+  onUseChange($event: boolean, data: Item): void {
+    if ($event && this.parentData) {
+      this.parentData.use = true;
+    }
+    if (!this.isPlain(data.type)) {
+      (data.attributeValue as Item[]).forEach(it => it.use = $event);
     }
   }
 }

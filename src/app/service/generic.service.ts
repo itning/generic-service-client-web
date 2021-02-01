@@ -293,6 +293,7 @@ export class Item {
   placeholder: string;
   autoComplete: AutocompleteDataSource = [];
   show: boolean;
+  use: boolean;
   attributeValueDate: Date;
 
   static generate(type: Type,
@@ -309,6 +310,7 @@ export class Item {
     item.placeholder = placeholder;
     item.autoComplete = autoComplete;
     item.show = true;
+    item.use = true;
     item.attributeValueDate = attributeValueDate;
     return item;
   }
