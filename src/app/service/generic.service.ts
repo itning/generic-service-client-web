@@ -380,13 +380,31 @@ export class TabInfo {
   formParams: FormGroup;
   parameterValue: Item[] = [];
   resultData: string[] = [];
+  selectEnv: EnvInfo;
+  availableInterface: string[];
+  availableMethod: string[];
 
-  constructor(id: string, tabName: string, formParams: FormGroup, parameterValue: Item[], resultData: string[]) {
+  constructor(id: string, tabName: string, formParams: FormGroup, parameterValue: Item[], resultData: string[], selectEnv?: EnvInfo) {
     this.id = id;
     this.tabName = tabName;
     this.formParams = formParams;
     this.parameterValue = parameterValue;
     this.resultData = resultData;
+    this.selectEnv = selectEnv;
+  }
+}
+
+/**
+ * 环境信息
+ */
+export class EnvInfo {
+  tag: string;
+  env: string;
+
+  constructor(info: string) {
+    const splitIndex = info.indexOf('||');
+    this.tag = info.substring(0, splitIndex);
+    this.env = info.substring(splitIndex + 2);
   }
 }
 

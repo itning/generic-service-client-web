@@ -8,7 +8,8 @@
         <nz-form-item>
           <nz-form-label [nzSm]="6" [nzXs]="24" nzRequired nzFor="interfaceName">弱类型接口名（全限定类名）</nz-form-label>
           <nz-form-control [nzSm]="14" [nzXs]="24" nzErrorTip="弱类型接口名必填">
-            <nz-input-group [nzAddOnBefore]="selectEnv ? interfaceNameBeforeEnv : ''">
+            <nz-input-group [nzAddOnBefore]="availableEnv && availableEnv.length > 0 ? interfaceNameBeforeEnv : ''"
+                            [nzAddOnAfter]="interfaceNameAfter">
               <!--suppress HtmlFormInputWithoutLabel -->
               <input [nzAutocomplete]="availableInterfaceNameAutocomplete" placeholder="例：top.itning.api.UserApi"
                      nz-input
@@ -19,10 +20,14 @@
                              (selectionChange)="handleInterfaceAutocompleteSelect($event)"
                              #availableInterfaceNameAutocomplete></nz-autocomplete>
             <ng-template #interfaceNameBeforeEnv>
-              <nz-select [(ngModel)]="selectEnv" (ngModelChange)="handleEnvChange()"
-                         [ngModelOptions]="{standalone: true}">
+              <nz-select [(ngModel)]="tab.selectEnv" (ngModelChange)="handleEnvChange()"
+                         [ngModelOptions]="{standalone: true}" nzPlaceHolder="环境...">
                 <nz-option *ngFor="let e of availableEnv" [nzValue]="e" [nzLabel]="e.env"></nz-option>
               </nz-select>
+            </ng-template>
+            <ng-template #interfaceNameAfter>
+              <i style="cursor: pointer" nz-icon nzType="reload" nzTheme="outline" nz-tooltip nzTooltipTitle="重新加载提示"
+                 (click)="reloadPrompt()"></i>
             </ng-template>
           </nz-form-control>
         </nz-form-item>
@@ -114,7 +119,7 @@
     </ng-container>
   </nz-modal>
   <nz-modal [(nzVisible)]="modalShow.resolveUrlSelect" nzTitle="选择提供者" [nzKeyboard]="false"
-            [nzMaskClosable]="false"
+            [nzMaskClosable]="false" [nzOkDisabled]="!resolveURLValue"
             (nzOnCancel)="modalShow.resolveUrlSelect=false" (nzOnOk)="resolveSelectURL()">
     <ng-container *nzModalContent>
       <nz-select [(ngModel)]="resolveURLValue" style="width: 100%;" nzPlaceHolder="选择提供者...">

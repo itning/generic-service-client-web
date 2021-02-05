@@ -1,7 +1,7 @@
 import {Injectable} from '@angular/core';
 import {Base64} from 'js-base64';
 import {FormBuilder, Validators} from '@angular/forms';
-import {Item, TabInfo} from './generic.service';
+import {EnvInfo, Item, TabInfo} from './generic.service';
 
 @Injectable({
   providedIn: 'root'
@@ -65,7 +65,8 @@ export class PersistenceService {
         id: tab.id,
         tabName: tab.tabName,
         formParamsValue: tab.formParams.value as FormParamsInfo,
-        parameterValue: tab.parameterValue
+        parameterValue: tab.parameterValue,
+        selectEnv: tab.selectEnv
       };
     });
     const encode = Base64.encode(JSON.stringify(save));
@@ -92,7 +93,7 @@ export class PersistenceService {
           group: [item.formParamsValue.group, []],
           path: [item.formParamsValue.path]
         });
-        return new TabInfo(item.id, item.tabName, formGroup, item.parameterValue, []);
+        return new TabInfo(item.id, item.tabName, formGroup, item.parameterValue, [], item.selectEnv);
       });
     } catch (e) {
       window.localStorage.removeItem(PersistenceService.GENERIC_PARAM_INFO_KEY);
@@ -101,5 +102,6 @@ export class PersistenceService {
   }
 }
 
-export type PersistenceGenericParamInfo = { id: string, tabName: string, formParamsValue: FormParamsInfo, parameterValue: Item[] }[];
+export type PersistenceGenericParamInfo =
+  { id: string, tabName: string, formParamsValue: FormParamsInfo, parameterValue: Item[], selectEnv: EnvInfo }[];
 export type FormParamsInfo = { url: string, interfaceName: string, method: string, version: string, group: string, path: string };

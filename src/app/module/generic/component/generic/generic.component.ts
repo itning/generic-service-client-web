@@ -110,7 +110,8 @@ export class GenericComponent implements OnInit {
     const encode = Base64.encode(JSON.stringify([{
       tabName: tab.tabName,
       formParamsValue: tab.formParams.value as FormParamsInfo,
-      parameterValue: tab.parameterValue
+      parameterValue: tab.parameterValue,
+      selectEnv: tab.selectEnv
     }]));
     this.exportInfo = encode;
     this.isShowExportModal = true;
@@ -128,7 +129,8 @@ export class GenericComponent implements OnInit {
       return {
         tabName: tab.tabName,
         formParamsValue: tab.formParams.value as FormParamsInfo,
-        parameterValue: tab.parameterValue
+        parameterValue: tab.parameterValue,
+        selectEnv: tab.selectEnv
       };
     });
     const encode = Base64.encode(JSON.stringify(save));
@@ -158,7 +160,7 @@ export class GenericComponent implements OnInit {
           item.formParamsValue.group,
           item.formParamsValue.path
         );
-        return new TabInfo(uuidv4(), item.tabName ? item.tabName : 'Unnamed Tab', formGroup, item.parameterValue, []);
+        return new TabInfo(uuidv4(), item.tabName ? item.tabName : 'Unnamed Tab', formGroup, item.parameterValue, [], item.selectEnv);
       });
       importTabs.forEach(tab => this.tabs.push(tab));
       this.isShowImportModal = false;

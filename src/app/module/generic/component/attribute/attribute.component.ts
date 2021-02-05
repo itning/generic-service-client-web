@@ -5,6 +5,7 @@ import {FormParamsInfo, PersistenceService} from '../../../../service/persistenc
 import {
   Artifact,
   AttributeValueType,
+  EnvInfo,
   GenericService,
   Item,
   MavenRequest,
@@ -108,11 +109,9 @@ export class AttributeComponent implements OnInit {
    */
   autocomplete = {
     interfaces: {
-      available: [],
       availableFilter: []
     },
     methods: {
-      available: [],
       availableFilter: []
     }
   };
@@ -121,11 +120,6 @@ export class AttributeComponent implements OnInit {
    * 用户填的解析URL值
    */
   resolveURLValue: string;
-
-  /**
-   * 用户当前选择的环境
-   */
-  selectEnv: EnvInfo;
 
   /**
    * 所有可用的环境
@@ -226,8 +220,15 @@ export class AttributeComponent implements OnInit {
     this.genericService.getAvailableEnv().subscribe((availableEnv) => {
       if (availableEnv && availableEnv.length > 0) {
         this.availableEnv = availableEnv.map(item => new EnvInfo(item));
-        this.selectEnv = this.availableEnv[0];
-        this.initAvailableInterFace(this.selectEnv.tag, this.selectEnv.env);
+        const selectEnv = this.tabs[this.selectedIndex].selectEnv;
+        if (selectEnv && availableEnv.includes(selectEnv.env)) {
+          this.initAvailableInterFace(selectEnv.tag, selectEnv.env);
+        } else {
+          if (selectEnv && selectEnv.env !== '') {
+            this.message.warning('Zookeeper环境信息已变化！');
+            this.tabs[this.selectedIndex].selectEnv = new EnvInfo('||');
+          }
+        }
       } else {
         console.log('注册中心当前未连接请稍后再试！');
       }
@@ -446,8 +447,9 @@ export class AttributeComponent implements OnInit {
    * 处理TAB切换
    */
   handleTabChange(): void {
-    this.autocomplete.methods.availableFilter = this.autocomplete.methods.available;
-    this.autocomplete.interfaces.availableFilter = this.autocomplete.interfaces.available;
+    const tabInfo = this.tabs[this.selectedIndex];
+    this.autocomplete.methods.availableFilter = tabInfo.availableMethod;
+    this.autocomplete.interfaces.availableFilter = tabInfo.availableInterface;
     this.tabSelectChange.emit(this.selectedIndex);
   }
 
@@ -625,7 +627,8 @@ export class AttributeComponent implements OnInit {
    * @private
    */
   private handleAutoFillingParam(interfaceName: string): void {
-    this.genericService.getURL(this.selectEnv.env, this.selectEnv.tag, interfaceName).subscribe(url => {
+    const tabInfo = this.tabs[this.selectedIndex];
+    this.genericService.getURL(tabInfo.selectEnv.env, tabInfo.selectEnv.tag, interfaceName).subscribe(url => {
       if (url && url.success && url.data && url.data.length > 0) {
         if (url.data.length === 1) {
           this.resolveURLValue = decodeURIComponent(url.data[0]);
@@ -639,10 +642,11 @@ export class AttributeComponent implements OnInit {
             return new ProviderInfo(item, `主机：${host} 分组：${group} 版本：${version}`);
           });
           this.message.info('有多个提供者，请选择一个！');
+          this.resolveURLValue = '';
           this.modalShow.resolveUrlSelect = true;
         }
       } else {
-        this.autocomplete.methods.available = this.autocomplete.methods.availableFilter = [];
+        tabInfo.availableMethod = this.autocomplete.methods.availableFilter = [];
         if (url && !url.regConnected) {
           this.message.warning('注册中心当前未连接请稍后再试！');
         } else {
@@ -711,7 +715,7 @@ export class AttributeComponent implements OnInit {
     const path = this.util.getParamValue(this.resolveURLValue, 'path');
     const tabInfo = this.tabs[this.selectedIndex];
     tabInfo.formParams.setValue({url: host, interfaceName, group, version, method: '', path});
-    this.autocomplete.methods.availableFilter = this.autocomplete.methods.available = methods.split(',');
+    this.autocomplete.methods.availableFilter = tabInfo.availableMethod = methods.split(',');
     this.message.success('解析完成！');
     this.modalShow.resolveUrl = false;
   }
@@ -723,7 +727,7 @@ export class AttributeComponent implements OnInit {
   availableMethodsAutoCompleteFilter($event: Event): void {
     $event.preventDefault();
     const value = ($event.target as HTMLInputElement).value;
-    this.autocomplete.methods.availableFilter = this.autocomplete.methods.available.filter(item => item.indexOf(value) !== -1);
+    this.autocomplete.methods.availableFilter = this.tabs[this.selectedIndex].availableMethod.filter(item => item.indexOf(value) !== -1);
   }
 
 
@@ -734,7 +738,8 @@ export class AttributeComponent implements OnInit {
   availableInterFacesAutoCompleteFilter($event: Event): void {
     $event.preventDefault();
     const value = ($event.target as HTMLInputElement).value;
-    this.autocomplete.interfaces.availableFilter = this.autocomplete.interfaces.available.filter(item => item.indexOf(value) !== -1);
+    this.autocomplete.interfaces.availableFilter =
+      this.tabs[this.selectedIndex].availableInterface.filter(item => item.indexOf(value) !== -1);
   }
 
   /**
@@ -745,7 +750,8 @@ export class AttributeComponent implements OnInit {
   initAvailableInterFace(tag: string, env: string): void {
     this.genericService.getAvailableInterFaces(tag, env).subscribe((availableInterface) => {
       if (availableInterface && availableInterface.success) {
-        this.autocomplete.interfaces.availableFilter = this.autocomplete.interfaces.available = availableInterface.data;
+        this.autocomplete.interfaces.availableFilter = this.tabs[this.selectedIndex].availableInterface = availableInterface.data;
+        this.message.success('接口信息获取成功！');
       } else {
         if (availableInterface && !availableInterface.regConnected) {
           this.message.warning('注册中心当前未连接请稍后再试！');
@@ -760,9 +766,9 @@ export class AttributeComponent implements OnInit {
    * 处理环境改变事件
    */
   handleEnvChange(): void {
-    this.autocomplete.interfaces.availableFilter = this.autocomplete.interfaces.available = [];
-    this.initAvailableInterFace(this.selectEnv.tag, this.selectEnv.env);
     const tabInfo = this.tabs[this.selectedIndex];
+    this.autocomplete.interfaces.availableFilter = tabInfo.availableInterface = [];
+    this.initAvailableInterFace(tabInfo.selectEnv.tag, tabInfo.selectEnv.env);
     const interfaceName = tabInfo.formParams.get('interfaceName');
     interfaceName.markAsDirty();
     interfaceName.updateValueAndValidity();
@@ -1014,6 +1020,18 @@ export class AttributeComponent implements OnInit {
     this.mavenLoading = false;
     this.modalShow.mavenVersion = false;
   }
+
+  /**
+   * 重新加载提示
+   */
+  reloadPrompt(): void {
+    const tabInfo = this.tabs[this.selectedIndex];
+    if (tabInfo.selectEnv && tabInfo.selectEnv.env !== '') {
+      this.handleEnvChange();
+    } else {
+      this.message.warning('请先选择环境！');
+    }
+  }
 }
 
 /**
@@ -1026,20 +1044,6 @@ class ProviderInfo {
   constructor(url: string, info: string) {
     this.url = url;
     this.info = info;
-  }
-}
-
-/**
- * 环境信息
- */
-class EnvInfo {
-  tag: string;
-  env: string;
-
-  constructor(info: string) {
-    const splitIndex = info.indexOf('||');
-    this.tag = info.substring(0, splitIndex);
-    this.env = info.substring(splitIndex + 2);
   }
 }
 
