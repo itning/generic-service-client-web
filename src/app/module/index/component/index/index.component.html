@@ -29,10 +29,14 @@
                [nzType]="isCollapsed ? 'menu-unfold' : 'menu-fold'"
             ></i>
         </span>
+        <div class="header-right">
+          <nz-switch [(ngModel)]="isDarkMode" (click)="toggleTheme()" nzCheckedChildren="黑暗主题"
+                     nzUnCheckedChildren="默认主题"></nz-switch>
+        </div>
       </div>
     </nz-header>
     <nz-content>
-      <div class="inner-content">
+      <div class="inner-content" [class.white-back]="!isDarkMode">
         <router-outlet></router-outlet>
       </div>
     </nz-content>

@@ -34,10 +34,24 @@
               "src/manifest.webmanifest"
             ],
             "styles": [
-              "src/theme.less",
               "src/styles.scss",
-              "node_modules/jsoneditor/dist/jsoneditor.min.css"
+              "node_modules/jsoneditor/dist/jsoneditor.min.css",
+              {
+                "input": "src/styles/default.less",
+                "bundleName": "default",
+                "inject": false
+              },
+              {
+                "input": "src/styles/dark.less",
+                "bundleName": "dark",
+                "inject": false
+              }
             ],
+            "stylePreprocessorOptions": {
+              "includePaths": [
+                "src/styles/themes"
+              ]
+            },
             "scripts": []
           },
           "configurations": {
