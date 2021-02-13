@@ -9,7 +9,7 @@
           <nz-form-label [nzSm]="6" [nzXs]="24" nzRequired nzFor="interfaceName">弱类型接口名（全限定类名）</nz-form-label>
           <nz-form-control [nzSm]="14" [nzXs]="24" nzErrorTip="弱类型接口名必填">
             <nz-input-group [nzAddOnBefore]="availableEnv && availableEnv.length > 0 ? interfaceNameBeforeEnv : ''"
-                            [nzAddOnAfter]="interfaceNameAfter">
+                            [nzAddOnAfter]="availableEnv && availableEnv.length > 0 ? interfaceNameAfter : ''">
               <!--suppress HtmlFormInputWithoutLabel -->
               <input [nzAutocomplete]="availableInterfaceNameAutocomplete" placeholder="例：top.itning.api.UserApi"
                      nz-input

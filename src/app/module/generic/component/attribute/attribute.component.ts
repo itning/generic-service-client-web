@@ -268,7 +268,6 @@ export class AttributeComponent implements OnInit {
   private parseDownloadMessage(model: WebSocketResultModel): void {
     switch (model.type) {
       case WebSocketMessageType.NEXUS_DOWNLOAD_CANCEL_TOKEN:
-        console.log(model.message);
         this.cancelToken = model.message;
         this.downloadSpeed = 0;
         this.downloadProgress = 0;

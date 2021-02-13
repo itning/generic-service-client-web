@@ -16,10 +16,12 @@ export class GenericService {
 
   private token: string;
   private resultSubject: Subject<WebSocketResultModel>;
+  private textDecoder: TextDecoder;
 
   constructor(private http: HttpClient,
               private message: NzMessageService,
               private fb: FormBuilder) {
+    this.textDecoder = new TextDecoder();
   }
 
   sendGenericRequest(requestModel: RequestModel, echo: string): Observable<string> {
@@ -113,20 +115,24 @@ export class GenericService {
     });
   }
 
-  private initWebSocket(url: string): Observable<string> {
+  private initWebSocket(url: string): Observable<WebSocketResultWrap> {
     const ws = new WebSocket(url);
     window.onbeforeunload = () => {
       if (ws) {
         ws.close();
       }
     };
-    return new Observable<string>(
+    return new Observable<WebSocketResultWrap>(
       observer => {
-        ws.onopen = () => observer.next('0||服务器连接成功！');
-        ws.onmessage = (event) => observer.next(event.data);
+        ws.onopen = () => observer.next(WebSocketResultWrap.local('服务器连接成功！'));
+        ws.onmessage = (event) => {
+          (event.data as Blob).arrayBuffer()
+            .then(it => observer.next(WebSocketResultWrap.wrap(it)))
+            .catch(err => observer.error(err));
+        };
         ws.onerror = (event) => observer.error(event);
         ws.onclose = () => {
-          observer.next('0||服务器已关闭，请刷新页面后再试！');
+          observer.next(WebSocketResultWrap.local('服务器连接已断开，请刷新页面后再试！'));
           observer.complete();
         };
       });
@@ -155,11 +161,14 @@ export class GenericService {
 
   connectionResultWebSocket(token: string): Observable<WebSocketResultModel> {
     return this.initWebSocket(`ws://${environment.baseUrl}/p?token=${token}`)
-      .pipe(map(it => {
-        const echoEndIndex = it.indexOf('|', 2);
-        const type = Number(it.charAt(0)) as WebSocketMessageType;
-        const echo = it.substring(2, echoEndIndex);
-        const message = it.substring(echoEndIndex + 1);
+      .pipe(map((it) => {
+        if (it.localMessage) {
+          return new WebSocketResultModel(0, '', it.message);
+        }
+        const data = it.data;
+        const type: number = new DataView(data.slice(0, 1)).getUint8(0);
+        const echo: string = this.textDecoder.decode(data.slice(1, 37));
+        const message: string = this.textDecoder.decode(data.slice(37));
         return new WebSocketResultModel(type, echo, message);
       }));
   }
@@ -174,11 +183,8 @@ export class GenericService {
   }
 
   connectionLogWebSocket(): Observable<string> {
-    return this.initWebSocket(`ws://${environment.baseUrl}/log`).pipe(map(it => {
-      if (it.startsWith('0||')) {
-        it = it.substring(3);
-      }
-      return it;
+    return this.initWebSocket(`ws://${environment.baseUrl}/log`).pipe(map((it) => {
+      return it.localMessage ? it.message : this.textDecoder.decode(it.data);
     }));
   }
 
@@ -235,6 +241,26 @@ export class GenericService {
         return this.getRealValue(it);
       }
     });
+  }
+}
+
+class WebSocketResultWrap {
+  localMessage: boolean;
+  message: string;
+  data: ArrayBuffer;
+
+  static local(message: string): WebSocketResultWrap {
+    const w = new WebSocketResultWrap();
+    w.localMessage = true;
+    w.message = message;
+    return w;
+  }
+
+  static wrap(data: ArrayBuffer): WebSocketResultWrap {
+    const w = new WebSocketResultWrap();
+    w.localMessage = false;
+    w.data = data;
+    return w;
   }
 }
 
