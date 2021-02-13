@@ -1,7 +1,7 @@
 import {Injectable} from '@angular/core';
 import {RequestModel} from '../module/generic/component/attribute/attribute.component';
 import {HttpClient, HttpEvent, HttpParams} from '@angular/common/http';
-import {Observable, Subject} from 'rxjs';
+import {EMPTY, Observable, Subject} from 'rxjs';
 import {map, mergeMap} from 'rxjs/operators';
 import {FormBuilder, FormGroup, Validators} from '@angular/forms';
 import {environment} from '../../environments/environment';
@@ -17,6 +17,7 @@ export class GenericService {
   private token: string;
   private resultSubject: Subject<WebSocketResultModel>;
   private textDecoder: TextDecoder;
+  private wsInstance: WebSocket;
 
   constructor(private http: HttpClient,
               private message: NzMessageService,
@@ -25,12 +26,22 @@ export class GenericService {
   }
 
   sendGenericRequest(requestModel: RequestModel, echo: string): Observable<string> {
+    if (!this.wsInstance) {
+      this.message.error('WebSocket连接实例不可用，请稍后再试！');
+      return EMPTY;
+    }
+    if (this.wsInstance.readyState !== WebSocket.OPEN) {
+      this.message.error('WebSocket连接不可用，请刷新页面后再试！');
+      return EMPTY;
+    }
     return this.getWebSocketToken().pipe(mergeMap(token => {
       // tslint:disable-next-line
       requestModel['token'] = token;
       // tslint:disable-next-line
       requestModel['echo'] = echo;
-      return this.http.post(`http://${environment.baseUrl}/dubbo/invoke`, requestModel, {responseType: 'text'});
+      this.wsInstance.send(new TextEncoder().encode(JSON.stringify(requestModel)));
+      // return this.http.post(`http://${environment.baseUrl}/dubbo/invoke`, requestModel, {responseType: 'text'});
+      return EMPTY;
     }));
   }
 
@@ -115,14 +126,14 @@ export class GenericService {
     });
   }
 
-  private initWebSocket(url: string): Observable<WebSocketResultWrap> {
+  private initWebSocket(url: string): WsInstanceAndResult {
     const ws = new WebSocket(url);
     window.onbeforeunload = () => {
       if (ws) {
         ws.close();
       }
     };
-    return new Observable<WebSocketResultWrap>(
+    return new WsInstanceAndResult(ws, new Observable<WebSocketResultWrap>(
       observer => {
         ws.onopen = () => observer.next(WebSocketResultWrap.local('服务器连接成功！'));
         ws.onmessage = (event) => {
@@ -135,7 +146,7 @@ export class GenericService {
           observer.next(WebSocketResultWrap.local('服务器连接已断开，请刷新页面后再试！'));
           observer.complete();
         };
-      });
+      }));
   }
 
   private getRealValue(item: Item): string | number | boolean | null {
@@ -160,7 +171,9 @@ export class GenericService {
   }
 
   connectionResultWebSocket(token: string): Observable<WebSocketResultModel> {
-    return this.initWebSocket(`ws://${environment.baseUrl}/p?token=${token}`)
+    const wsInstanceAndResult = this.initWebSocket(`ws://${environment.baseUrl}/p?token=${token}`);
+    this.wsInstance = wsInstanceAndResult.instance;
+    return wsInstanceAndResult.observable
       .pipe(map((it) => {
         if (it.localMessage) {
           return new WebSocketResultModel(0, '', it.message);
@@ -183,7 +196,7 @@ export class GenericService {
   }
 
   connectionLogWebSocket(): Observable<string> {
-    return this.initWebSocket(`ws://${environment.baseUrl}/log`).pipe(map((it) => {
+    return this.initWebSocket(`ws://${environment.baseUrl}/log`).observable.pipe(map((it) => {
       return it.localMessage ? it.message : this.textDecoder.decode(it.data);
     }));
   }
@@ -241,6 +254,16 @@ export class GenericService {
         return this.getRealValue(it);
       }
     });
+  }
+}
+
+class WsInstanceAndResult {
+  instance: WebSocket;
+  observable: Observable<WebSocketResultWrap>;
+
+  constructor(instance: WebSocket, observable: Observable<WebSocketResultWrap>) {
+    this.instance = instance;
+    this.observable = observable;
   }
 }
 
