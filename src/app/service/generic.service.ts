@@ -25,14 +25,14 @@ export class GenericService {
     this.textDecoder = new TextDecoder();
   }
 
-  sendGenericRequest(requestModel: RequestModel, echo: string): void {
+  sendGenericRequest(requestModel: RequestModel, echo: string): boolean {
     if (!this.wsInstance) {
       this.message.error('WebSocket连接实例不可用，请稍后再试！');
-      return;
+      return false;
     }
     if (this.wsInstance.readyState !== WebSocket.OPEN) {
       this.message.error('WebSocket连接不可用，请刷新页面后再试！');
-      return;
+      return false;
     }
     this.getWebSocketToken().subscribe(token => {
       // tslint:disable-next-line
@@ -41,6 +41,7 @@ export class GenericService {
       requestModel['echo'] = echo;
       this.wsInstance.send(new TextEncoder().encode(JSON.stringify(requestModel)));
     });
+    return true;
   }
 
   sendMavenRequest(mavenRequest: MavenRequest): Observable<MavenResponse<void>> {

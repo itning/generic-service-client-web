@@ -58,9 +58,7 @@ export class GenericComponent implements OnInit {
       newResult.interfaceName = newResult.path;
     }
     newResult.url = `dubbo://${newResult.url}`;
-
-    tab.isRequestLoading = true;
-    this.genericService.sendGenericRequest(newResult, tab.id);
+    tab.isRequestLoading = this.genericService.sendGenericRequest(newResult, tab.id);
   }
 
   handleTabSelect(index: number): void {
