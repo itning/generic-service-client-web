@@ -19,7 +19,6 @@ export class GenericComponent implements OnInit {
   lastJsonInfo: string;
   isShowImportModal: boolean;
   isShowExportModal: boolean;
-  isRequestLoading: boolean;
   importTabBase64Str: string;
   exportInfo: string;
 
@@ -60,13 +59,8 @@ export class GenericComponent implements OnInit {
     }
     newResult.url = `dubbo://${newResult.url}`;
 
-    this.isRequestLoading = true;
-    this.genericService.sendGenericRequest(newResult, tab.id).subscribe(next => {
-      console.log(next);
-    }, () => {
-    }, () => {
-      this.isRequestLoading = false;
-    });
+    tab.isRequestLoading = true;
+    this.genericService.sendGenericRequest(newResult, tab.id);
   }
 
   handleTabSelect(index: number): void {

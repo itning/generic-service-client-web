@@ -1,7 +1,7 @@
 import {Injectable} from '@angular/core';
 import {RequestModel} from '../module/generic/component/attribute/attribute.component';
 import {HttpClient, HttpEvent, HttpParams} from '@angular/common/http';
-import {EMPTY, Observable, Subject} from 'rxjs';
+import {Observable, Subject} from 'rxjs';
 import {map, mergeMap} from 'rxjs/operators';
 import {FormBuilder, FormGroup, Validators} from '@angular/forms';
 import {environment} from '../../environments/environment';
@@ -25,24 +25,22 @@ export class GenericService {
     this.textDecoder = new TextDecoder();
   }
 
-  sendGenericRequest(requestModel: RequestModel, echo: string): Observable<string> {
+  sendGenericRequest(requestModel: RequestModel, echo: string): void {
     if (!this.wsInstance) {
       this.message.error('WebSocket连接实例不可用，请稍后再试！');
-      return EMPTY;
+      return;
     }
     if (this.wsInstance.readyState !== WebSocket.OPEN) {
       this.message.error('WebSocket连接不可用，请刷新页面后再试！');
-      return EMPTY;
+      return;
     }
-    return this.getWebSocketToken().pipe(mergeMap(token => {
+    this.getWebSocketToken().subscribe(token => {
       // tslint:disable-next-line
       requestModel['token'] = token;
       // tslint:disable-next-line
       requestModel['echo'] = echo;
       this.wsInstance.send(new TextEncoder().encode(JSON.stringify(requestModel)));
-      // return this.http.post(`http://${environment.baseUrl}/dubbo/invoke`, requestModel, {responseType: 'text'});
-      return EMPTY;
-    }));
+    });
   }
 
   sendMavenRequest(mavenRequest: MavenRequest): Observable<MavenResponse<void>> {
@@ -432,6 +430,7 @@ export class TabInfo {
   selectEnv: EnvInfo;
   availableInterface: string[];
   availableMethod: string[];
+  isRequestLoading: boolean;
 
   constructor(id: string, tabName: string, formParams: FormGroup, parameterValue: Item[], resultData: string[], selectEnv?: EnvInfo) {
     this.id = id;

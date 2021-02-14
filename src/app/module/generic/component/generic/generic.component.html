@@ -2,8 +2,7 @@
   <nz-collapse>
     <nz-collapse-panel nzHeader="参数面板" nzActive [nzExtra]="paramExtra">
       <app-attribute [tabs]="tabs" [selectedIndex]="nowSelectedTabIndex"
-                     [isRequestLoading]="isRequestLoading" (request)="handleRequest($event)"
-                     (tabSelectChange)="handleTabSelect($event)"></app-attribute>
+                     (request)="handleRequest($event)" (tabSelectChange)="handleTabSelect($event)"></app-attribute>
     </nz-collapse-panel>
     <ng-template #paramExtra>
       <button style="margin-right: 6px" nzSize="small" nz-button nzType="default" nzShape="circle"

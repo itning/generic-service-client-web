@@ -39,8 +39,6 @@ export class AttributeComponent implements OnInit {
   @Input()
   tabs: TabInfo[] = [];
 
-  @Input()
-  isRequestLoading: boolean;
   /**
    * 当前选择的TAB页
    */
@@ -236,6 +234,9 @@ export class AttributeComponent implements OnInit {
     this.genericService.connectionResultWebSocketReply().subscribe(model => {
       const tabInfo = this.tabs.find(it => it.id === model.echo);
       if (tabInfo) {
+        if (model.type === WebSocketMessageType.PLAINTEXT || model.type === WebSocketMessageType.JSON) {
+          tabInfo.isRequestLoading = false;
+        }
         this.parseDownloadMessage(model);
       }
     });
