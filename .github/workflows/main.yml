@@ -1,4 +1,4 @@
-# This workflow will build a Java project with Maven and create release
+# This workflow will build a Npm Web project with Node.JS and create release
 # author: https://github.com/itning
 
 name: Java CI with Maven
