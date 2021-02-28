@@ -5,6 +5,7 @@
 [![GitHub watchers](https://img.shields.io/github/watchers/itning/generic-service-client-web.svg?style=social&label=Watch)](https://github.com/itning/generic-service-client-web/watchers)
 [![GitHub followers](https://img.shields.io/github/followers/itning.svg?style=social&label=Follow)](https://github.com/itning?tab=followers)
 
+[![Auto Build](https://github.com/itning/generic-service-client-web/actions/workflows/main.yml/badge.svg)](https://github.com/itning/generic-service-client-web/actions/workflows/main.yml)
 [![GitHub issues](https://img.shields.io/github/issues/itning/generic-service-client-web.svg)](https://github.com/itning/generic-service-client-web/issues)
 [![GitHub license](https://img.shields.io/github/license/itning/generic-service-client-web.svg)](https://github.com/itning/generic-service-client-web/blob/master/LICENSE)
 [![GitHub last commit](https://img.shields.io/github/last-commit/itning/generic-service-client-web.svg)](https://github.com/itning/generic-service-client-web/commits)
