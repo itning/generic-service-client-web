@@ -1,0 +1,37 @@
+# This workflow will build a Java project with Maven and create release
+# author: https://github.com/itning
+
+name: Java CI with Maven
+
+on:
+  push:
+    # Sequence of patterns matched against refs/tags
+    tags:
+      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Npm Install And Build
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
+    - run: npm install
+    - run: npm run build
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        body: |
+            - This Release Build By Github Action.
+            - [Click Me To See Change Log File.](https://github.com/${{ github.repository }}/blob/master/CHANGELOG.md)
+        draft: false
+        prerelease: false
