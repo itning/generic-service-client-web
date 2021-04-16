@@ -11,7 +11,7 @@
 [![GitHub last commit](https://img.shields.io/github/last-commit/itning/generic-service-client-web.svg)](https://github.com/itning/generic-service-client-web/commits)
 [![GitHub release](https://img.shields.io/github/release/itning/generic-service-client-web.svg)](https://github.com/itning/generic-service-client-web/releases)
 [![GitHub repo size in bytes](https://img.shields.io/github/repo-size/itning/generic-service-client-web.svg)](https://github.com/itning/generic-service-client-web)
-[![HitCount](http://hits.dwyl.io/itning/generic-service-client-web.svg)](http://hits.dwyl.io/itning/generic-service-client-web)
+[![HitCount](http://hits.dwyl.com/itning/generic-service-client-web.svg)](http://hits.dwyl.com/itning/generic-service-client-web)
 [![language](https://img.shields.io/badge/language-Angular-green.svg)](https://github.com/itning/generic-service-client-web)
 
 [Click Me To Open Readme](https://github.com/itning/generic-service-client)
